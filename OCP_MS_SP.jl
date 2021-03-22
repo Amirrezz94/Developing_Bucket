@@ -166,11 +166,28 @@ JuMP.termination_status(m1)
 JuMP.solve_time(m1)
 ##---------------------------------------------------------
 Solution = JuMP.value.(u)[:,:,:]
-x       = JuMP.value.(x)[:,:,:,:]
+x_star = JuMP.value.(x)[:,:,:,NCP]
+
+cat(x0, JuMP.value.(x)[1,:,:,NCP] , dims = 2)
+
+x0
+x0'
+
+ca
 u_plot  = cat(x0[1], Solution[1:NFE], dims = 1)
-x1      = cat(x0[1], x[1,:,:,:], dims = 1)
+
+cat(x0, x, dims = 3)
+
+cat(x0[1], x[:,:,1,NCP], dims = 2)
+
+x[:,1,:,NCP]
+
+cat(x0[1], x[:,1,:,NCP], dims = 3)
+
+
+x1      = cat(x0[1], x[:,:,:,:], dims = 1)
 x2      = cat(x0[2], x[2,:,:,:], dims = 1)
-t_plot = collect(1:NFE) 
+t_plot = collect(0:NFE) 
 ##---------------------------------------------------------
 #choose backend for plots
 plotlyjs()
@@ -178,12 +195,13 @@ plotlyjs()
 
 
 
-px1 = plot(t_plot, x[1, 1, :, end],         label = "x1_1")
+px1 = plot(t_plot, cat(x0[1], JuMP.value.(x)[1,1,:,NCP] , dims = 1),         label = "x1_1")
 for i in 2:Ns
-
-    px1 = plot!(t_plot, x[i, 1, :, end],         label = "x1_$i")
-
+    px1 = plot!(t_plot, cat(x0[1], JuMP.value.(x)[i,1,:,NCP] , dims = 1)    ,         label = "x1_$i")
 end
+
+px1
+
 px2 = plot( t_plot, x[1, 2, :, end],         label = "x2_1")
 for i in 2:Ns
 
