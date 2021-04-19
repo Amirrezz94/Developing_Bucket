@@ -1,90 +1,148 @@
 using JuMP
 using Ipopt
 using Plots
-##Supplementary Files
-
 ##Required Parameters
-NFE = 30;
 
 
-P_f            = NaN*ones(NFE)
-P_e            = NaN*ones(NFE)
-
-P_f[1:convert(Int64, NFE/3)]     .=  20
-P_f[convert(Int64, NFE/3) + 1:2*convert(Int64, NFE/3)]  .= -20
-P_f[2*convert(Int64, NFE/3) + 1:end]  .= 0
-
-P_e[1:convert(Int64, NFE/3)]     .=  30
-P_e[convert(Int64, NFE/3) + 1:2*convert(Int64, NFE/3)]  .= 0
-P_e[2*convert(Int64, NFE/3) + 1:end]  .= -30
+N_hour = 6;
 
 
-nu = 2;
-u0 = [0, 0];
+# Prices for FR and DAM
+Πᶠ            = NaN*ones(N_hour)
+Πᵉ            = NaN*ones(N_hour)
+
+Πᶠ[1:convert(Int64, N_hour/3)]     .=  0.1
+Πᶠ[convert(Int64, N_hour/3) + 1:2*convert(Int64, N_hour/3)]  .= 4
+Πᶠ[2*convert(Int64, N_hour/3) + 1:end]  .= 2
+
+Πᵉ[1:convert(Int64, N_hour/3)]     .=  5
+Πᵉ[convert(Int64, N_hour/3) + 1:2*convert(Int64, N_hour/3)]  .= 0.1
+Πᵉ[2*convert(Int64, N_hour/3) + 1:end]  .= 4
+
+
+#Starting Values
+F0 = 0;
+O0 = 0;
+l0 = 0;
+P0 = 0;
+E0 = 0;
+
+#ISO data
+ISO_sec = 10;
+N_ISO = convert(Int64, 3600/ISO_sec)
+α = rand(N_hour , N_ISO)
+
+dt = 1
+
+
+
+
+#E bands and band coeffiecient
+Eₘᵢₙ = 0;
+Eₘₐₓ = 2;
+ΔE = Eₘₐₓ - Eₘᵢₙ;
+τₗ = 0.2;
+τᵤ = 0.2;
+μₗ = 0.3;
+μᵤ = 0.3;
+
 
 ##Model Defining
 m1 = Model(Ipopt.Optimizer)
-##===========================================================
-#@variable(m1,  x[1:Nx, 1:NFE, 1:NCP+1])
-#@variable(m1, dx[1:Nx, 1:NFE, 1:NCP])
-@variable(m1,  u[1:Nu, 1:NFE       ])
-#@variable(m1,  q[1,    1:NFE, 1:NCP])
-#@variable(m1, dq[1,    1:NFE, 1:NCP])
-##===========================================================
-for nfe in 1:NFE, nu in 1:Nu
+
+
+##Variable Defining----------------------------------
+@variable(m1,  F[1:N_hour])
+@variable(m1,  O[1:N_hour])
+@variable(m1,  l[1:N_hour])
+@variable(m1,  P[1:N_hour, 1:N_ISO])
+@variable(m1,  E[1:N_hour, 1:N_ISO])
+
+##Bounds and Starting Points----------------------------------
+for k in 1:N_hour, s in 1:N_ISO
     #Bounds
-    #set_lower_bound(x[nx, nfe, ncp], -10)
-    #set_upper_bound(x[nx , nfe, ncp], 10)
-    set_lower_bound(u[nu, nfe], 0)
-    set_upper_bound(u[nu, nfe], 2)
+    set_lower_bound(F[k], 0)
+    set_upper_bound(F[k], 2)
+
+    set_lower_bound(O[k], 0)
+    set_upper_bound(O[k], 2)
+
+    set_lower_bound(P[k, s], 0)
+    set_upper_bound(P[k, s], 2)
+
+    set_lower_bound(l[k], 0)
+    set_upper_bound(l[k], 2)
+
+    set_lower_bound(E[k, s], Eₘᵢₙ)
+    set_upper_bound(E[k, s], Eₘₐₓ)
     #Start Values
-    #set_start_value(x[nx, nfe, ncp],    x0[nx])
-    #set_start_value(dx[nx, nfe, ncp], dx0[nx])
-    set_start_value(u[nfe],         u0[nu])
-    #set_start_value(q[1, nfe, ncp],     q0)
-    #set_start_value(dq[1, nfe, ncp],    dq0)
+    set_start_value(F[k], F0)
+    set_start_value(O[k], O0)
+    set_start_value(l[k], l0)
+    set_start_value(P[k, s], P0)
+    set_start_value(E[k, s], E0)
 end
-#=Set the ODEs===========================================================
-@NLconstraints(m1, begin
-    ODE1[nfe in 1:NFE, ncp in 1:NCP],    dx[1, nfe, ncp]      == (p - x[2, nfe, ncp] ^2) * x[1, nfe, ncp] - x[2, nfe, ncp] + u[nfe];
-    ODE2[nfe in 1:NFE, ncp in 1:NCP],    dx[2, nfe, ncp]      == x[1, nfe, ncp];
-    #ODEn[nfe in 1:NFE, ncp in 1:NCP],   ...
+
+
+##Constraints----------------------------------
+
+
+#C1
+@constraints(m1, begin
+      Battery_Power[k in 1:N_hour, s in 1:N_ISO], P[k, s] == α[k, s] * F[k] + O[k] - l[k]
 end)
 
-##Quadrature===========================================================
-@NLconstraints(m1, begin
-      Quad_Diff[nfe in 1:NFE, ncp in 1:NCP], dq[1, nfe, ncp]  == (x[1, nfe, ncp])^2 + (x[2, nfe, ncp])^2 + (u[nfe])^2
+
+#C2
+@constraints(m1, begin
+      Battery_Energy[k in 1:N_hour, s in 1:N_ISO-1], E[k, s+1] == E[k, s] + P[k,s] * dt
 end)
-##Collcation!===========================================================
-@NLconstraints(m1, begin
-        Coll_Eq_Diff[    nx in 1:Nx,  nfe in 1:NFE,    ncp in 1:NCP],     x[nx, nfe, ncp+1] == x[nx, nfe, 1] + sum(M[ncp, i] * dt * dx[nx, nfe, i] for i in 1:NCP)
-        Cont_Eq_First[   nx in 1:Nx],                                     x[nx, 1, 1]       == x0[nx]
-        Cont_Eq_rest[    nx in 1:Nx,  nfe in 2:NFE],                      x[nx, nfe, 1]     == x[nx, nfe-1, end]
-        Coll_Eq_Quad0[                                 ncp in 1:NCP],     q[1, 1, ncp]      == q0  + sum(M[ncp, i] * dq[1, 1, i] for i in 1:NCP)
-        Coll_Eq_Quad[                 nfe in 2:NFE,    ncp in 1:NCP],     q[1, nfe, ncp]    == q[1, nfe-1, NCP]  + sum(M[ncp, i] * dt * dq[1, nfe, i] for i in 1:NCP)
+
+
+#C3
+@constraints(m1, begin
+      Battery_Safety[k in 1:N_hour, s in 1:N_ISO-1], Eₘᵢₙ + τₗ*ΔE <= E[k, s] <= Eₘₐₓ - τᵤ*ΔE
 end)
-=#
-##Objective Function===========================================================
-@NLobjective(m1, Min,  q[1, end, end])
-(m1, Min,  sum(w[ns] * q[ns, 1, end, end] for ns in 1:Ns))
-(m1, Min,  sum(- (P_f[nfe] * u[1, nfe]) + (P_e[nfe] * u[2, nfe]) for nfe in 1:NFE))
-##===========================================================
+#C4
+
+@constraints(m1, begin
+      Battery_Terminate[k in 1:N_hour], Eₘᵢₙ + μₗ*ΔE <= E[k, end] <= Eₘₐₓ - μᵤ*ΔE
+end)
+
+
+##Objective Function----------------------------------
+@objective(m1, Min,  sum(- (Πᶠ[k] * F[k]) + (Πᵉ[k] * O[k]) for k in 1:N_hour))
+##Optimization!----------------------------------
 optimize!(m1)
 JuMP.termination_status(m1)
 JuMP.solve_time(m1)
-##===========================================================
-Solution = JuMP.value.(u)[:,:]
-x       = JuMP.value.(x)[:,:,:]
-u_plot  = cat(x0[1], Solution[1:NFE], dims = 1)
-x1      = cat(x0[1], x[1,:,:], dims = 1)
-x2      = cat(x0[2], x[2,:,:], dims = 1)
-t_plot = collect(0:dt:dt * NFE)    
-##=========================================================== 
+
+
+##Extracting Data----------------------------------
+
+t_plot = collect(0:dt:dt * N_hour) 
+fr = JuMP.value.(F)[:]
+Ok = JuMP.value.(O)[:]
+Ek = JuMP.value.(E)[:,:]
+
+FR  =   cat(F0, fr[1:N_hour], dims = 1)
+DAM_P = cat(O0, Ok[1:N_hour], dims = 1)
+E_Plot = cat(E0, Ek[:,end], dims = 1)
+Πᶠ_Plot = cat(Πᶠ[1], Πᶠ[1:end], dims = 1)
+Πᵉ_Plot = cat(Πᵉ[1], Πᵉ[1:end], dims = 1)
+   
+##Plotting---------------------------------- 
 #choose backend for plots
 plotlyjs()
-p11 = plot(t_plot, x1,         label = "X")
-p11 = plot!(t_plot, x2,         label = "X2")
 
-p12 = plot(t_plot, u_plot, xaxis = "Time", label = "U", linetype = :steppost)
+p1 =  plot(t_plot, FR,     label = "Fₖ",    linetype = :steppost);
+p1 = plot!(t_plot, DAM_P,  label = "Oₖ", linetype = :steppost);
 
-fig1 = plot(p11, p12, layout = (2, 1))
+
+
+p2 = plot(t_plot, Πᶠ_Plot, label = "Πᶠ", linetype = :steppost, linestyle = :dash);
+p2 = plot!(t_plot, Πᵉ_Plot, label = "Πᵉ", linetype = :steppost, linestyle = :dash);
+
+p3 = plot(t_plot, E_Plot, label = "E", linetype = :steppost, linestyle = :dash);
+
+fig1 = plot(p1, p2, p3, layout = (3, 1), xaxis = "Time")
