@@ -11,14 +11,13 @@ N_hour = 6;
 Πᶠ            = NaN*ones(N_hour)
 Πᵉ            = NaN*ones(N_hour)
 
-Πᶠ[1:convert(Int64, N_hour/3)]     .=  1.5
-Πᶠ[convert(Int64, N_hour/3) + 1:2*convert(Int64, N_hour/3)]  .= 4
-Πᶠ[2*convert(Int64, N_hour/3) + 1:end]  .= 2.5
+Πᶠ[1:convert(Int64, N_hour/3)]     .=  3
+Πᶠ[convert(Int64, N_hour/3) + 1:2*convert(Int64, N_hour/3)]  .= 8
+Πᶠ[2*convert(Int64, N_hour/3) + 1:end]  .= 5
 
-Πᵉ[1:convert(Int64, N_hour/3)]     .=  5
-Πᵉ[convert(Int64, N_hour/3) + 1:2*convert(Int64, N_hour/3)]  .= 1
-Πᵉ[2*convert(Int64, N_hour/3) + 1:end]  .= 2.5
-
+Πᵉ[1:convert(Int64, N_hour/3)]     .=  8
+Πᵉ[convert(Int64, N_hour/3) + 1:2*convert(Int64, N_hour/3)]  .= 2
+Πᵉ[2*convert(Int64, N_hour/3) + 1:end]  .= 5
 # Πᵉ[1:convert(Int64, N_hour)]     .=  5
 
 
@@ -27,7 +26,7 @@ F0 = 0;
 O0 = 0;
 l0 = 0;
 P0 = 0;
-E0 = 3.0;
+E0 = 2.0;
 
 #ISO data
 ISO_sec = 10;
@@ -124,7 +123,7 @@ end)
 end)
 
 
-#Objective Function----------------------------------
+##Objective Function----------------------------------
 @objective(m1, Min,  sum( (Πᵉ[k] * O[k]) - (Πᶠ[k] * F[k]) for k in 1:N_hour))
 ##Optimization!----------------------------------
 optimize!(m1)
@@ -163,7 +162,7 @@ profit = Πᶠ.*fr .- Πᵉ.*Ok;
 
 p11 = plot(t_plot, Ek[1,:], label = "E")
 p11 = plot!(t_plot, Pk[1,:], label = "P")
-p11 = plot!( xlims=(0,N_hour))
+p11 = plot!( xlims=(0,N_hour+0.5))
 t_plotₖ = cat(t_plot[N_ISO+1:N_ISO:end], t_plot[end], dims = 1);
 
 
@@ -171,44 +170,25 @@ t_plotₖ = cat(t_plot[N_ISO+1:N_ISO:end], t_plot[end], dims = 1);
 
 p12 = plot(  t_plotₖ, fr, ls = :dot,  markershape = :circle, mc = :match,label = "F")
 p12 = plot!( t_plotₖ, Ok, ls = :dot, markershape = :circle, mc = :match,label = "O")
-p12 = plot!( xlims=(0,N_hour))
+p12 = plot!( xlims=(0,N_hour+0.5))
 
 p13 = plot(  t_plotₖ, Πᶠ, ls = :dot,  markershape = :hexagon, label = "Πᶠ")
 p13 = plot!( t_plotₖ, Πᵉ, ls = :dot,  markershape = :hexagon,label = "Πᵉ")
-p13 = plot!( t_plotₖ, profit, ls = :dot,  markershape = :hexagon, mc = :match,label = "Profit")
-p13 = plot!( xlims=(0,N_hour))
+#p13 = plot!( t_plotₖ, profit, ls = :dot,  markershape = :hexagon, mc = :match,label = "Profit")
+p13 = plot!( xlims=(0,N_hour+0.5))
 
-p2 = plot(p12, p13, p11, layout = (3, 1), legend=:topleft)
+
+p14 = plot( t_plotₖ, profit, ls = :dot,  markershape = :hexagon, mc = :match,label = "Profit")
+p14 = plot!( xlims=(0,N_hour+0.5))
+
+
+p2 = plot(p12, p13, p11, p14, layout = (4, 1), legend=:topleft)
 
 #display(p11)
 #display(p2)
 
 ##
 savefig(p2,"~/Documents/Julia/1.Thesis/Battery_FP/Figures/OCP_Result.eps")
-
-#savefig(p11,"~/Documents/Julia/1.Thesis/Battery_FP/Figures/OCP_Result1.eps")
-
-# FR  =   cat(F0, fr[1:N_hour], dims = 1)
-# DAM_P = cat(O0, Ok[1:N_hour], dims = 1)
-# E_Plot = cat(E0, Ek[:,end], dims = 1)
-# Πᶠ_Plot = cat(Πᶠ[1], Πᶠ[1:end], dims = 1)
-# Πᵉ_Plot = cat(Πᵉ[1], Πᵉ[1:end], dims = 1)
-   
-# ##Plotting---------------------------------- 
-# #choose backend for plots
-# plotlyjs()
-
-# p1 =  plot(t_plot, FR,     label = "Fₖ",    linetype = :steppost);
-# p1 = plot!(t_plot, DAM_P,  label = "Oₖ", linetype = :steppost);
-
-# display(p1)
-
-# p2 = plot(t_plot, Πᶠ_Plot, label = "Πᶠ", linetype = :steppost, linestyle = :dash);
-# p2 = plot!(t_plot, Πᵉ_Plot, label = "Πᵉ", linetype = :steppost, linestyle = :dash);
-
-# p3 = plot(t_plot, E_Plot, label = "E", linetype = :steppost, linestyle = :dash);
-
-# fig1 = plot(p1, p2, p3, layout = (3, 1), xaxis = "Time")
 
 
 
