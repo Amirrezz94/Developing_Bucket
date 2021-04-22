@@ -26,7 +26,7 @@ F0 = 0;
 O0 = 0;
 l0 = 0;
 P0 = 0;
-E0 = 2.0;
+E0 = 3.0;
 
 #ISO data
 ISO_sec = 10;
@@ -133,7 +133,8 @@ JuMP.solve_time(m1)
 
 ##Extracting Data----------------------------------
 
-plotlyjs()
+# plotlyjs()
+gr()
 #Creating time axis
 #t_plot = collect(range(0, stop = N_hour, length = N_ISO*N_hour ) ) #!FIX STEPS CORRECTLY
 t_plot = Float64[];
@@ -183,7 +184,7 @@ p14 = plot!( xlims=(0,N_hour+0.5))
 
 
 p2 = plot(p12, p13, p11, p14, layout = (4, 1), legend=:topleft)
-
+# savefig()
 #display(p11)
 #display(p2)
 
