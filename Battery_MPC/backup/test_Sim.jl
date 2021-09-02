@@ -1,10 +1,13 @@
-a= 1;
 ##Start Simulation-----------------------------
 include("Battery_OCP.jl")
 include("Battery_Integrator.jl")
-##
+
+
+
 Timeₛᵢₘ = 6;     #Simulation time in hour
 Time_Pred = 2;   #prediction horizon time in hour
+
+
 
 
 Πᶠ            = NaN*ones(Timeₛᵢₘ)
@@ -44,6 +47,7 @@ delta_sei0 = 1e-10;
 
 
 ##Simulate!
+
 for t in 1:Timeₛᵢₘ
     global  P_to_Battery, results
     #Optimizing E
@@ -61,21 +65,7 @@ for t in 1:Timeₛᵢₘ
     
 end
 
-##lklk
 
-#=
-t= 1;
-##
-fr, Ok, Ek, Pk, profit, t_plot = Battery_MPC(Eₒₚₜ,   Πᶠ[t:t + Time_Pred - 1],
-Πᵉ[t:t + Time_Pred - 1], 
-α[t:t + Time_Pred - 1, :],
-ISO_sec);
-##
-P_to_Battery = Pk[1:N_ISO+1]
-
-#Simulating the Battery for next hour
-results = Battery_Model(ModelTime, ISO_sec, delta_sei0, P_to_Battery)
-Eₒₚₜ = results.u[end][13]
 
 
 
@@ -120,5 +110,3 @@ p3
 ##
 
 p4
-
-=#

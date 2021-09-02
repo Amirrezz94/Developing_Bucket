@@ -9,7 +9,7 @@ using Plots
 savefigure = false
 Plotting   = false
 
-function Battery_Model(ModelTime, ISO_sec, delta_sei0, P_FR_segment, E0)
+function Battery_Model(ModelTime, ISO_sec, delta_sei0, P_FR_segment)
         ##*Parameters
         #=
         @with_kw struct BatteryParam
@@ -170,7 +170,7 @@ function Battery_Model(ModelTime, ISO_sec, delta_sei0, P_FR_segment, E0)
             u0[(Ncp+1):(Ncp+Ncn)]   .= csn_avg0
             u0[Ncp+Ncn + 7]         = delta_sei0    # delta_sei
             u0[Ncp+Ncn + 8]         = 0             # cm
-            u0[Ncp+Ncn + 9]         = E0           # cp
+            u0[Ncp+Ncn + 9]         = 0             # cp
             u0[Ncp+Ncn + 10]        = 0             # Q
             u0[Ncp+Ncn + 11]        = 0             # cf
         u0

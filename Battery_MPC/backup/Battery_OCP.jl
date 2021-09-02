@@ -57,8 +57,8 @@ function Battery_MPC(E0, Πᶠ, Πᵉ, α, ISO_sec)
   
   
       ##Model Defining
-      m1 = Model(Ipopt.Optimizer)
-    #   m1 = Model(Gurobi.Optimizer)
+      #m1 = Model(Ipopt.Optimizer)
+      m1 = Model(Gurobi.Optimizer)
   
   
       ##Variable Defining----------------------------------
